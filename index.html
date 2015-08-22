@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>t-SNE</title>
+
+<script src="assets/jquery.min.js"></script>
+<script src="assets/d3.min.js"></script>
+
+<script src="assets/tsne.js"></script>
+<link href='http://fonts.googleapis.com/css?family=Roboto:400,300' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="assets/style.css">
+
+<script>
+
+var opt = {epsilon: 10, perplexity: 30};
+var T = new tsnejs.tSNE(opt); // create a tSNE instance
+
+var Y;
+
+var data;
+
+function updateEmbedding() {
+  var Y = T.getSolution();
+  svg.selectAll('.u')
+    .data(data.users)
+    .attr("transform", function(d, i) { return "translate(" +
+      ((Y[i][0]*20*ss + tx) + 400) + "," +
+      ((Y[i][1]*20*ss + ty) + 300) + ")"; });
+}
+
+var svg;
+function drawEmbedding() {
+    $("#embed").empty();
+    var div = d3.select("#embed");
+
+    // get min and max in each column of Y
+    var Y = T.Y;
+
+    svg = div.append("svg") // svg is global
+    .attr("width", "100%")
+    .attr("height", 600);
+
+    var g = svg.selectAll(".b")
+      .data(data.users)
+      .enter().append("g")
+      .attr("class", "u");
+
+    g.append("svg:image")
+      .attr('x', 0)
+      .attr('y', 2)
+      .attr('width', 30)
+      .attr('height', 30)
+      .attr("xlink:href", function(d) { return "data/images/" + d.substring(1); })
+
+    g.append("text")
+      .attr("text-anchor", "top")
+      .attr("font-size", 18)
+      .attr("fill", "#333")
+      .text(function(d) { return d; });
+
+    var zoomListener = d3.behavior.zoom()
+      .scaleExtent([0.1, 100])
+      .center([0,0])
+      .on("zoom", zoomHandler);
+    zoomListener(svg);
+}
+
+var tx=0, ty=0;
+var ss=1;
+function zoomHandler() {
+  tx = d3.event.translate[0];
+  ty = d3.event.translate[1];
+  ss = d3.event.scale;
+}
+
+function step() {
+  for(var k=0;k<1;k++) {
+    T.step(); // do a few steps
+  }
+  updateEmbedding();
+}
+
+$(window).load(function() {
+
+  $.getJSON( "data.json", function( j ) {
+    data = j;
+    T.initDataDist(data.mat); // init embedding
+    drawEmbedding(); // draw initial embedding
+
+    //T.debugGrad();
+    setInterval(step, 0);
+    //step();
+
+  });
+});
+
+</script>
+
+</head>
+
+<body>
+<div id="embed"></div>
+t-SNE visualization of 100 most followed Indian Twitter accounts. Pan/zoom using mouse. Based on Andrej Karpathy's <a href="https://github.com/karpathy/tsnejs">tsnejs</a> and <a href="http://karpathy.github.io/2014/07/02/visualizing-top-tweeps-with-t-sne-in-Javascript/">this blog post</a>.
+
+
+</body>
+
+</html>
